@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "name": "T-Shirt",
+    "price": 499,
+    "description": "Comfortable cotton T-shirt",
+    "sizes": ["S", "M", "L", "XL"],
+    "colors": ["Black", "White", "Blue"],
+    "variants": ["Round Neck", "V-Neck"],
+    "image": "https://via.placeholder.com/150"
+  },
+  {
+    "id": 2,
+    "name": "Hoodie",
+    "price": 999,
+    "description": "Warm winter hoodie",
+    "sizes": ["M", "L", "XL"],
+    "colors": ["Black", "Grey"],
+    "variants": ["With Zip", "Without Zip"],
+    "image": "https://via.placeholder.com/150"
+  }
+]

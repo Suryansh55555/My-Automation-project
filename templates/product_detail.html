@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ product['name'] }} - Qikink Store</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .product-detail { max-width: 600px; margin: auto; border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+    .product-detail img { width: 100%; height: auto; }
+    h2 { margin-top: 10px; }
+    p { margin: 10px 0; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    a.back { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #333; }
+  </style>
+</head>
+<body>
+  <a class="back" href="{{ url_for('store') }}">&larr; Back to Store</a>
+  <div class="product-detail">
+    {% if product['image_url'] %}
+      <img src="{{ product['image_url'] }}" alt="{{ product['name'] }}">
+    {% else %}
+      <img src="https://via.placeholder.com/500x300?text=No+Image" alt="No Image">
+    {% endif %}
+    <h2>{{ product['name'] }}</h2>
+    <p>{{ product['description'] or "No description available" }}</p>
+    <b>₹{{ "%.2f"|format(product['price']) }}</b><br/><br/>
+    <button onclick="openRazorpay('{{ product['id'] }}','{{ product['name'] }}','{{ product['description'] }}','{{ product['price'] }}')">
+      Buy Now
+    </button>
+  </div>
+
+  <script>
+    function openRazorpay(id, name, description, price) {
+      var options = {
+        "key": "rzp_test_RB6meofEAzd7xv",
+        "amount": parseFloat(price) * 100,
+        "currency": "INR",
+        "name": name,
+        "description": description,
+        "handler": function(response){
+          alert("Payment successful! Payment ID: " + response.razorpay_payment_id);
+        },
+        "modal": {
+          "ondismiss": function(){ alert("Payment popup closed"); }
+        }
+      };
+      var rzp1 = new Razorpay(options);
+      rzp1.open();
+    }
+  </script>
+</body>
+</html>

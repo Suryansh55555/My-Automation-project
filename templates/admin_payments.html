@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>💳 Payments</h2>
+<table class="table table-striped table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>Payment ID</th>
+      <th>Order ID</th>
+      <th>Amount (₹)</th>
+      <th>Status</th>
+      <th>Created At</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in payments %}
+    <tr>
+      <td>{{ p.payment_id }}</td>
+      <td>{{ p.order_id or "N/A" }}</td>
+      <td>₹{{ '%.2f' | format(p.amount / 100) }}</td>
+      <td>
+        {% if p.status == "VERIFIED" %}
+          <span class="badge bg-success badge-status">Success</span>
+        {% elif p.status == "UNVERIFIED" %}
+          <span class="badge bg-warning text-dark badge-status">Pending</span>
+        {% else %}
+          <span class="badge bg-danger badge-status">{{ p.status }}</span>
+        {% endif %}
+      </td>
+      <td>{{ p.created_at }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Qikink Store</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f8f8f8; }
+    h1 { text-align: center; margin-bottom: 30px; }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .product {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      width: 280px;
+      padding: 15px;
+      box-sizing: border-box;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .product:hover {
+      transform: scale(1.03);
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .product img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+
+    .product h3 {
+      margin: 10px 0 5px 0;
+      font-size: 1.1em;
+      color: #333;
+    }
+
+    .product b {
+      font-size: 1.1em;
+      color: #007bff;
+    }
+
+    .product a {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>Qikink Store</h1>
+  <div class="container">
+    {% for p in products %}
+      <div class="product">
+        <a href="{{ url_for('product_detail', product_id=p['id']) }}">
+          {% if p['image_url'] %}
+            <img src="{{ p['image_url'] }}" alt="{{ p['name'] }}">
+          {% else %}
+            <img src="https://via.placeholder.com/280x200?text=No+Image" alt="No Image">
+          {% endif %}
+          <h3>{{ p['name'] }}</h3>
+          <b>₹{{ "%.2f"|format(p['price']) }}</b>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+</body>
+</html>

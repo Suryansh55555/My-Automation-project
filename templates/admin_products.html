@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+  <h2 class="mb-4">🛍️ Manage Products</h2>
+
+  <!-- Add New Product Form -->
+  <div class="card shadow-sm p-4 mb-4">
+    <h5 class="mb-3">➕ Add New Product</h5>
+    <form action="{{ url_for('admin_products') }}" method="POST">
+
+      <div class="mb-3">
+        <label class="form-label">Product Name</label>
+        <input type="text" class="form-control" name="name" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Product Type</label>
+        <input type="text" class="form-control" name="type" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Product Size</label>
+        <input type="text" class="form-control" name="size" placeholder="e.g. S, M, L, XL" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Price (₹)</label>
+        <input type="number" class="form-control" name="price" step="0.01" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Color Variants</label>
+        <input type="text" class="form-control" name="colors" placeholder="e.g. Red, Blue, Black">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Print Variants</label>
+        <input type="text" class="form-control" name="prints" placeholder="e.g. Front Logo, Back Print">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Image Link</label>
+        <input type="url" class="form-control" name="image" placeholder="https://example.com/image.jpg">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" name="description" rows="3"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Add Product</button>
+    </form>
+  </div>
+
+  <!-- Products Table -->
+  <div class="card shadow-sm p-4">
+    <h5 class="mb-3">📋 Product List</h5>
+    <table class="table table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Product Name</th>
+          <th scope="col">Type</th>
+          <th scope="col">Size</th>
+          <th scope="col">Price (₹)</th>
+          <th scope="col">Colors</th>
+          <th scope="col">Prints</th>
+          <th scope="col">Image</th>
+          <th scope="col">Description</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ product.name }}</td>
+          <td>{{ product.type or "-" }}</td>
+          <td>{{ product.size or "-" }}</td>
+          <td>₹{{ "%.2f"|format(product.price) }}</td>
+          <td>{{ product.colors or "-" }}</td>
+          <td>{{ product.prints or "-" }}</td>
+          <td>
+            {% if product.image %}
+              <a href="{{ product.image }}" target="_blank">View</a>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ product.description or "-" }}</td>
+          <td>
+            <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn btn-sm btn-warning">✏️ Edit</a>
+            <a href="{{ url_for('delete_product', product_id=product.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');">🗑️ Delete</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" class="text-center">No products available.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
