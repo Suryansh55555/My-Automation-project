@@ -13,6 +13,10 @@ from flask_login import (
     current_user,
 )
 import requests
+import csv
+from werkzeug.utils import secure_filename
+
+
 
 # ------------------ CONFIG ------------------ #
 app = Flask(__name__)
@@ -298,26 +302,63 @@ def razorpay_webhook():
 
     return jsonify({"ok": verified})
 
-# SHOW STORE (pulls from DB)
+# ---- STORE PAGE ----
 @app.route("/store")
 def store():
     conn = get_db_connection()
-    rows = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
+    products = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
     conn.close()
-    return render_template("store.html", products=rows)
+    return render_template("store.html", products=products)
 
 
-@app.route("/store/<int:product_id>")
+@app.route("/admin/upload_csv", methods=["POST"])
+@login_required
+def upload_csv():
+    file = request.files.get("file")
+    if not file:
+        return "No file uploaded", 400
+
+    filename = secure_filename(file.filename)
+    if not filename.endswith(".csv"):
+        return "Only CSV files are allowed", 400
+
+    # Read CSV
+    stream = file.stream.read().decode("utf-8").splitlines()
+    reader = csv.DictReader(stream)
+
+    conn = get_db_connection()
+    for row in reader:
+        name = row.get("Product Type") or row.get("name") or ""
+        price_raw = row.get("Price", "0").replace("₹", "").strip()
+        try:
+            price = float(price_raw)
+        except:
+            price = 0.0
+        description = row.get("Description", "")
+        image_url = row.get("Image Link") or None
+
+        conn.execute(
+            "INSERT INTO products (name, price, description, image_url) VALUES (?,?,?,?)",
+            (name, price, description, image_url)
+        )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("admin_products"))
+
+@app.route("/product/<int:product_id>")
 def product_detail(product_id):
     conn = get_db_connection()
     product = conn.execute("SELECT * FROM products WHERE id=?", (product_id,)).fetchone()
     conn.close()
+
     if not product:
         return "Product not found", 404
+
     return render_template("product_detail.html", product=product)
+
 
 
 # ------------------ MAIN ------------------ #
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
+    app.run(debug=True)

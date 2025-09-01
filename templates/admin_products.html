@@ -53,6 +53,21 @@
     </form>
   </div>
 
+  <!-- Bulk Upload CSV -->
+  <div class="card shadow-sm p-4 mb-4">
+    <h5 class="mb-3">📂 Bulk Upload Products (CSV)</h5>
+    <form action="{{ url_for('upload_csv') }}" method="POST" enctype="multipart/form-data">
+      <div class="mb-3">
+        <input type="file" class="form-control" name="file" accept=".csv" required>
+      </div>
+      <button type="submit" class="btn btn-success">Upload CSV</button>
+    </form>
+    <p class="text-muted mt-2">
+      <small>Make sure your CSV has headers: 
+      <b>Product Name, Product Type, Product Size, Price, Color Variants, Print Variants, Image Link, Description</b></small>
+    </p>
+  </div>
+
   <!-- Products Table -->
   <div class="card shadow-sm p-4">
     <h5 class="mb-3">📋 Product List</h5>
