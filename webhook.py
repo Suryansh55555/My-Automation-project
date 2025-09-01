@@ -3,7 +3,7 @@ import hmac
 import hashlib
 import json
 import sqlite3
-from flask import Flask, request, jsonify, render_template, render_template_string, redirect, url_for
+from flask import Flask, request, jsonify, render_template, render_template_string, redirect, url_for,flash
 from flask_login import (
     LoginManager,
     login_user,
@@ -15,6 +15,8 @@ from flask_login import (
 import requests
 import csv
 from werkzeug.utils import secure_filename
+
+
 
 
 
@@ -357,6 +359,21 @@ def product_detail(product_id):
 
     return render_template("product_detail.html", product=product)
 
+
+@app.route('/delete_all_products', methods=['POST'])
+@login_required
+def delete_all_products():
+    try:
+        conn = sqlite3.connect("products.db")
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM products")  # remove all rows
+        conn.commit()
+        conn.close()
+        flash("✅ All products deleted successfully!", "success")
+    except Exception as e:
+        flash(f"❌ Error deleting products: {e}", "danger")
+
+    return redirect(url_for("admin_products"))
 
 
 # ------------------ MAIN ------------------ #

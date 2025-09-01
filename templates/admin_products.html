@@ -68,6 +68,18 @@
     </p>
   </div>
 
+  <!-- 🔴 Delete All Products Button -->
+  <div class="card shadow-sm p-4 mb-4 border-danger">
+    <h5 class="mb-3 text-danger">⚠️ Danger Zone</h5>
+    <form action="{{ url_for('delete_all_products') }}" method="POST"
+          onsubmit="return confirm('🚨 Are you absolutely sure?\n\nThis will permanently delete ALL products and cannot be undone.');">
+      <button type="submit" class="btn btn-sm btn-outline-danger">
+        🗑️ Delete All Products
+      </button>
+    </form>
+    <small class="text-muted">Think twice before using this. All product data will be lost forever!</small>
+  </div>
+
   <!-- Products Table -->
   <div class="card shadow-sm p-4">
     <h5 class="mb-3">📋 Product List</h5>
