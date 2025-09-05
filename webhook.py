@@ -1,9 +1,9 @@
-import os
+iimport os
 import hmac
 import hashlib
 import json
 import sqlite3
-from flask import Flask, request, jsonify, render_template, render_template_string, redirect, url_for,flash
+from flask import Flask, request, jsonify, render_template, render_template_string, redirect, url_for, flash
 from flask_login import (
     LoginManager,
     login_user,
@@ -16,13 +16,9 @@ import requests
 import csv
 from werkzeug.utils import secure_filename
 
-
-
-
-
 # ------------------ CONFIG ------------------ #
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # change in production
+app.secret_key = "supersecretkey"  # ⚠️ change in production
 
 # Telegram
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "your_bot_token_here")
@@ -312,7 +308,7 @@ def store():
     conn.close()
     return render_template("store.html", products=products)
 
-
+# ---- BULK UPLOAD ----
 @app.route("/admin/upload_csv", methods=["POST"])
 @login_required
 def upload_csv():
@@ -348,6 +344,7 @@ def upload_csv():
 
     return redirect(url_for("admin_products"))
 
+# ---- PRODUCT DETAIL ----
 @app.route("/product/<int:product_id>")
 def product_detail(product_id):
     conn = get_db_connection()
@@ -359,14 +356,13 @@ def product_detail(product_id):
 
     return render_template("product_detail.html", product=product)
 
-
+# ---- DELETE ALL PRODUCTS ----
 @app.route('/delete_all_products', methods=['POST'])
 @login_required
 def delete_all_products():
     try:
-        conn = sqlite3.connect("products.db")
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM products")  # remove all rows
+        conn = get_db_connection()   # ✅ fixed (site.db, not products.db)
+        conn.execute("DELETE FROM products")
         conn.commit()
         conn.close()
         flash("✅ All products deleted successfully!", "success")
@@ -374,7 +370,6 @@ def delete_all_products():
         flash(f"❌ Error deleting products: {e}", "danger")
 
     return redirect(url_for("admin_products"))
-
 
 # ------------------ MAIN ------------------ #
 if __name__ == "__main__":
