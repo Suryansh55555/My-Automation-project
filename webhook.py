@@ -6,6 +6,7 @@ import time
 import hashlib
 import json
 import sqlite3
+<<<<<<< HEAD
 import csv
 import requests
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
@@ -31,12 +32,31 @@ def slugify(name):
 # ------------------ CONFIG ------------------ #
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "supersecretkey")  # change in production
+=======
+from flask import Flask, request, jsonify, render_template, render_template_string, redirect, url_for, flash
+from flask_login import (
+    LoginManager,
+    login_user,
+    login_required,
+    logout_user,
+    UserMixin,
+    current_user,
+)
+import requests
+import csv
+from werkzeug.utils import secure_filename
+
+# ------------------ CONFIG ------------------ #
+app = Flask(__name__)
+app.secret_key = "supersecretkey"  # ⚠️ change in production
+>>>>>>> 6221b10 (My latest changes)
 
 # Telegram
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # Razorpay
+<<<<<<< HEAD
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_key")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "rzp_test_secret")
 RZP_WEBHOOK_SECRET = os.getenv("RZP_WEBHOOK_SECRET", "test_secret")
@@ -48,6 +68,10 @@ SERVICE_ACCOUNT_FILE = "google_credentials.json"
 # Initialize Razorpay client
 razorpay_client = Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
+=======
+RZP_WEBHOOK_SECRET = os.getenv("RZP_WEBHOOK_SECRET", "test_secret")
+
+>>>>>>> 6221b10 (My latest changes)
 # ------------------ LOGIN ------------------ #
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -65,11 +89,16 @@ def load_user(user_id):
 
 
 # ------------------ DATABASE ------------------ #
+<<<<<<< HEAD
 DB_FILE = "site.db"
 
 
 def get_db_connection():
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+=======
+def get_db_connection():
+    conn = sqlite3.connect("site.db")
+>>>>>>> 6221b10 (My latest changes)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -89,6 +118,10 @@ def init_db():
         )"""
     )
 
+<<<<<<< HEAD
+=======
+    # ✅ Products table
+>>>>>>> 6221b10 (My latest changes)
     conn.execute(
         """CREATE TABLE IF NOT EXISTS products(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,8 +184,6 @@ def find_product_by_key(product_key):
 
 # ------------------ HELPERS ------------------ #
 def send_telegram_message(msg: str):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     data = {"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"}
     try:
@@ -160,6 +191,7 @@ def send_telegram_message(msg: str):
     except Exception as e:
         print("Telegram error:", e)
 
+<<<<<<< HEAD
 
 def normalize_prices_in_db():
     conn = get_db_connection()
@@ -329,6 +361,8 @@ def get_sheet_tabs(sheet_id):
         return []
 
 
+=======
+>>>>>>> 6221b10 (My latest changes)
 # ------------------ ROUTES ------------------ #
 @app.route("/")
 def home():
@@ -340,6 +374,11 @@ def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
+<<<<<<< HEAD
+=======
+
+        # Hardcoded login
+>>>>>>> 6221b10 (My latest changes)
         if username == "admin" and password == "admin123":
             user = User(id=1)
             login_user(user)
@@ -361,14 +400,29 @@ def logout():
 def admin_dashboard():
     conn = get_db_connection()
     payments = conn.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
+<<<<<<< HEAD
     conn.close()
     total_revenue = sum(row["amount"] for row in payments)
+=======
+
+    total_revenue = sum(row["amount"] for row in payments)
+    total_orders = len(payments)
+    last_payment_amount = payments[0]["amount"] if payments else 0
+
+    conn.close()
+
+>>>>>>> 6221b10 (My latest changes)
     return render_template(
         "admin_dashboard.html",
         payments=payments,
         total_revenue=total_revenue,
+<<<<<<< HEAD
         total_orders=len(payments),
         last_payment_amount=payments[0]["amount"] if payments else 0
+=======
+        total_orders=total_orders,
+        last_payment_amount=last_payment_amount
+>>>>>>> 6221b10 (My latest changes)
     )
 
 
@@ -882,16 +936,46 @@ def clear_history():
     conn.close()
     return redirect(url_for("admin_dashboard"))
 
+<<<<<<< HEAD
 def find_product_by_slug(slug):
     slug = slug.lower()
     
     # First check Google Sheets aggregated products
     conn = get_db_connection()
     active_rows = conn.execute("SELECT sheet_id, tab_name FROM sheet_config WHERE active=1").fetchall()
+=======
+# ---- PRODUCTS ----
+@app.route("/admin/products", methods=["GET", "POST"])
+@login_required
+def admin_products():
+    conn = get_db_connection()
+
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        price_raw = request.form.get("price") or "0"
+        description = (request.form.get("description") or "").strip()
+        image_url = (request.form.get("image_url") or "").strip() if "image_url" in request.form else None
+
+        try:
+            price_val = float(price_raw)
+        except Exception:
+            price_val = 0.0
+
+        conn.execute(
+            "INSERT INTO products (name, price, description, image_url) VALUES (?,?,?,?)",
+            (name, price_val, description, image_url)
+        )
+        conn.commit()
+        conn.close()
+        return redirect(url_for("admin_products"))
+
+    rows = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
+>>>>>>> 6221b10 (My latest changes)
     conn.close()
 
     if active_rows:
         try:
+<<<<<<< HEAD
             scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
             creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
             client = gspread.authorize(creds)
@@ -926,6 +1010,68 @@ def find_product_by_slug(slug):
             pass
 
     # Fallback DB
+=======
+            price_val = float(price_raw)
+        except Exception:
+            price_val = 0.0
+
+        conn.execute(
+            "UPDATE products SET name=?, price=?, description=?, image_url=? WHERE id=?",
+            (name, price_val, description, image_url, product_id)
+        )
+        conn.commit()
+        conn.close()
+        return redirect(url_for("admin_products"))
+
+    r = conn.execute("SELECT * FROM products WHERE id=?", (product_id,)).fetchone()
+    conn.close()
+    if not r:
+        return "Product not found", 404
+
+    edit_html = """
+    {% extends "base.html" %}
+    {% block content %}
+    <div class="container mt-4">
+      <h2>Edit Product</h2>
+      <form method="POST" action="{{ url_for('edit_product', product_id=product['id']) }}">
+        <div class="mb-3">
+          <label class="form-label">Product Name</label>
+          <input type="text" class="form-control" name="name" value="{{ product['name'] }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Price (₹)</label>
+          <input type="number" class="form-control" name="price" step="0.01" value="{{ product['price'] }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="3">{{ product['description'] }}</textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Image URL (optional)</label>
+          <input type="text" class="form-control" name="image_url" value="{{ product['image_url'] or '' }}">
+        </div>
+        <button class="btn btn-primary">Save</button>
+        <a class="btn btn-secondary" href="{{ url_for('admin_products') }}">Cancel</a>
+      </form>
+    </div>
+    {% endblock %}
+    """
+    return render_template_string(edit_html, product=dict(r))
+
+@app.route("/admin/products/delete/<int:product_id>", methods=["GET", "POST"])
+@login_required
+def delete_product(product_id):
+    conn = get_db_connection()
+    conn.execute("DELETE FROM products WHERE id=?", (product_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("admin_products"))
+
+# ---- ORDERS & PAYMENTS ----
+@app.route("/admin/orders")
+@login_required
+def admin_orders():
+>>>>>>> 6221b10 (My latest changes)
     conn = get_db_connection()
     rows = conn.execute("SELECT * FROM products").fetchall()
     conn.close()
@@ -938,7 +1084,123 @@ def find_product_by_slug(slug):
 
     return None
 
+<<<<<<< HEAD
 # ------------------ STARTUP ------------------ #
+=======
+# ---- RAZORPAY WEBHOOK ----
+@app.route("/razorpay_webhook", methods=["POST"])
+def razorpay_webhook():
+    body = request.data
+    sig = request.headers.get("X-Razorpay-Signature")
+
+    if not sig:
+        return "Missing signature", 400
+
+    exp = hmac.new(RZP_WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
+    verified = hmac.compare_digest(exp, sig)
+
+    data = request.get_json()
+    pay = data.get("payload", {}).get("payment", {}).get("entity", {})
+
+    amount_paise = pay.get("amount", 0)
+    amount_inr = amount_paise / 100.0
+    pid = pay.get("id")
+    oid = pay.get("order_id")
+    status = pay.get("status", "unknown")
+
+    conn = get_db_connection()
+    conn.execute(
+        "INSERT INTO orders(payment_id,order_id,status,amount,currency,raw_payload) VALUES (?,?,?,?,?,?)",
+        (pid, oid, status, amount_inr, pay.get("currency", "INR"), json.dumps(data)),
+    )
+    conn.commit()
+    conn.close()
+
+    msg = (
+        f"*Razorpay Payment Alert!*\n\n"
+        f"📌 Event: `{data.get('event')}`\n"
+        f"🆔 Payment ID: `{pid}`\n"
+        f"🛍️ Order ID: `{oid or 'Not Linked'}`\n"
+        f"💰 Amount: ₹{amount_inr:.2f} INR\n"
+        f"✅ Status: *{status.upper()}*"
+    )
+    send_telegram_message(msg)
+
+    return jsonify({"ok": verified})
+
+# ---- STORE PAGE ----
+@app.route("/store")
+def store():
+    conn = get_db_connection()
+    products = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
+    conn.close()
+    return render_template("store.html", products=products)
+
+# ---- BULK UPLOAD ----
+@app.route("/admin/upload_csv", methods=["POST"])
+@login_required
+def upload_csv():
+    file = request.files.get("file")
+    if not file:
+        return "No file uploaded", 400
+
+    filename = secure_filename(file.filename)
+    if not filename.endswith(".csv"):
+        return "Only CSV files are allowed", 400
+
+    # Read CSV
+    stream = file.stream.read().decode("utf-8").splitlines()
+    reader = csv.DictReader(stream)
+
+    conn = get_db_connection()
+    for row in reader:
+        name = row.get("Product Type") or row.get("name") or ""
+        price_raw = row.get("Price", "0").replace("₹", "").strip()
+        try:
+            price = float(price_raw)
+        except:
+            price = 0.0
+        description = row.get("Description", "")
+        image_url = row.get("Image Link") or None
+
+        conn.execute(
+            "INSERT INTO products (name, price, description, image_url) VALUES (?,?,?,?)",
+            (name, price, description, image_url)
+        )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("admin_products"))
+
+# ---- PRODUCT DETAIL ----
+@app.route("/product/<int:product_id>")
+def product_detail(product_id):
+    conn = get_db_connection()
+    product = conn.execute("SELECT * FROM products WHERE id=?", (product_id,)).fetchone()
+    conn.close()
+
+    if not product:
+        return "Product not found", 404
+
+    return render_template("product_detail.html", product=product)
+
+# ---- DELETE ALL PRODUCTS ----
+@app.route('/delete_all_products', methods=['POST'])
+@login_required
+def delete_all_products():
+    try:
+        conn = get_db_connection()   # ✅ fixed (site.db, not products.db)
+        conn.execute("DELETE FROM products")
+        conn.commit()
+        conn.close()
+        flash("✅ All products deleted successfully!", "success")
+    except Exception as e:
+        flash(f"❌ Error deleting products: {e}", "danger")
+
+    return redirect(url_for("admin_products"))
+
+# ------------------ MAIN ------------------ #
+>>>>>>> 6221b10 (My latest changes)
 if __name__ == "__main__":
     init_db()
     try:

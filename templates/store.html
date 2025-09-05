@@ -1,8 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<<<<<<< HEAD
   <meta charset="UTF-8">
   <title>VastraVibe</title>
+=======
+  <meta charset="utf-8" />
+  <title>Qikink Store</title>
+>>>>>>> 6221b10 (My latest changes)
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 
@@ -28,6 +33,7 @@
       transition: background 0.3s, color 0.3s;
     }
 
+<<<<<<< HEAD
     /* Splash */
     #splash {
       position: fixed; top: 0; left: 0;
@@ -38,6 +44,17 @@
       flex-direction: column;
       z-index: 1000;
       animation: fadeOut 1s ease 3s forwards;
+=======
+    .product {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      width: 280px;
+      padding: 15px;
+      box-sizing: border-box;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+>>>>>>> 6221b10 (My latest changes)
     }
     #splash h1 {
       font-family: 'Playfair Display', serif;
@@ -50,6 +67,7 @@
     @keyframes glow { from { text-shadow: 0 0 10px rgba(255,255,255,0.2);} to { text-shadow: 0 0 20px rgba(255,255,255,0.6);} }
     @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
 
+<<<<<<< HEAD
     /* Navbar */
     nav {
       display: flex; justify-content: space-between; align-items: center;
@@ -57,12 +75,18 @@
       background: var(--card-bg);
       box-shadow: 0 4px 16px rgba(0,0,0,0.08);
       position: sticky; top: 0; z-index: 1000;
+=======
+    .product:hover {
+      transform: scale(1.03);
+      box-shadow: 0px 6px 18px rgba(0,0,0,0.08);
+>>>>>>> 6221b10 (My latest changes)
     }
     nav .logo { font-family: 'Playfair Display', serif; font-size: 1.8rem; background: var(--primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     nav ul { list-style: none; display: flex; gap: 20px; margin: 0; padding: 0; }
     nav ul li a { text-decoration: none; color: var(--text); font-weight: 600; transition: color 0.3s; cursor:pointer; }
     nav ul li a:hover { color: var(--accent); }
 
+<<<<<<< HEAD
     /* Hero Banner */
     .hero { position: relative; height: 300px; display: flex; align-items: center; justify-content: center; text-align: center; background: url('https://source.unsplash.com/1600x600/?fashion,clothes') center/cover no-repeat; color: white; }
     .hero h1 { font-size: 2.5rem; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; }
@@ -105,6 +129,82 @@
   <div id="splash">
     <h1>✨ VastraVibe ✨</h1>
     <p>Your Style. Your Vibe.</p>
+=======
+    .product img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: #f6f6f6;
+    }
+
+    .product h3 {
+      margin: 10px 0 6px 0;
+      font-size: 1.05em;
+      color: #222;
+      min-height: 40px;
+    }
+
+    .price {
+      font-weight: 700;
+      color: #007bff;
+      margin-bottom: 8px;
+    }
+
+    .meta {
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .view-link { text-decoration: none; color: inherit; display: block; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: #eef7ff;
+      color: #007bff;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Qikink Store</h1>
+
+  <div class="container">
+    {% for p in products %}
+      {% set img = p.get('image') or p.get('image_url') %}
+      <div class="product">
+        <!-- ✅ Use product_id instead of identifier/slug -->
+        <a class="view-link" href="{{ url_for('product_detail', identifier=p['slug']) }}">
+
+
+          {% if img %}
+            <img src="{{ img }}" alt="{{ p.get('name') }}">
+          {% else %}
+            <img src="https://via.placeholder.com/280x200?text=No+Image" alt="No Image">
+          {% endif %}
+         <h3>{{ p.get('name') }}</h3>
+<div class="price">
+  ₹{{ '%.2f'|format(p.get('price')|float if p.get('price') else 0) }}
+</div>
+
+          {% if p.get('sizes') %}
+            <div class="meta">
+              <span class="badge">{{ p.get('sizes')|length }} sizes</span>
+            </div>
+          {% endif %}
+
+          {% if p.get('type') %}
+            <div class="meta">{{ p.get('type') }}</div>
+          {% endif %}
+        </a>
+      </div>
+    {% else %}
+      <p>No products available.</p>
+    {% endfor %}
+>>>>>>> 6221b10 (My latest changes)
   </div>
 
   <!-- Navbar -->
