@@ -2,22 +2,30 @@
 {% block content %}
 <h2>📊 Dashboard</h2>
 <div class="row mb-4">
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="card p-3">
       <h5>Total Revenue</h5>
       <p class="fs-4 text-success">₹{{ "%.2f"|format(total_revenue) }}</p>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="card p-3">
       <h5>Total Orders</h5>
       <p class="fs-4">{{ total_orders }}</p>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="card p-3">
       <h5>Last Payment</h5>
       <p class="fs-6">{{ last_payment_id }} (₹{{ "%.2f"|format(last_payment_amount) }})</p>
+    </div>
+  </div>
+  <!-- New Sheets Card -->
+  <div class="col-md-3">
+    <div class="card p-3 bg-light">
+      <h5>📑 Manage Sheets</h5>
+      <p class="fs-6">Update linked Google Sheets for products.</p>
+      <a href="{{ url_for('manage_sheets') }}" class="btn btn-primary btn-sm mt-2">Go</a>
     </div>
   </div>
 </div>
@@ -34,6 +42,7 @@
     <tr>
       <th>Payment ID</th>
       <th>Order ID</th>
+      <th>Product</th>
       <th>Amount (₹)</th>
       <th>Status</th>
     </tr>
@@ -43,6 +52,7 @@
     <tr>
       <td>{{ p.payment_id }}</td>
       <td>{{ p.order_id or "N/A" }}</td>
+      <td>{{ p.product_name or "N/A" }}</td>
       <td>₹{{ "%.2f"|format(p.amount) }}</td>
       <td>
         {% if p.status == "VERIFIED" %}

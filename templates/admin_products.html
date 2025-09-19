@@ -8,76 +8,60 @@
   <div class="card shadow-sm p-4 mb-4">
     <h5 class="mb-3">➕ Add New Product</h5>
     <form action="{{ url_for('admin_products') }}" method="POST">
-
+      <!-- Your existing form fields remain unchanged -->
       <div class="mb-3">
         <label class="form-label">Product Name</label>
         <input type="text" class="form-control" name="name" required>
       </div>
-
       <div class="mb-3">
         <label class="form-label">Product Type</label>
         <input type="text" class="form-control" name="type" required>
       </div>
-
       <div class="mb-3">
-        <label class="form-label">Product Size</label>
-        <input type="text" class="form-control" name="size" placeholder="e.g. S, M, L, XL" required>
+        <label class="form-label">Available Sizes (comma-separated)</label>
+        <input type="text" class="form-control" name="sizes" placeholder="S,M,L,XL" required>
       </div>
-
       <div class="mb-3">
         <label class="form-label">Price (₹)</label>
         <input type="number" class="form-control" name="price" step="0.01" required>
       </div>
-
       <div class="mb-3">
         <label class="form-label">Color Variants</label>
-        <input type="text" class="form-control" name="colors" placeholder="e.g. Red, Blue, Black">
+        <input type="text" class="form-control" name="colors" placeholder="Red, Blue, Black">
       </div>
-
       <div class="mb-3">
         <label class="form-label">Print Variants</label>
-        <input type="text" class="form-control" name="prints" placeholder="e.g. Front Logo, Back Print">
+        <input type="text" class="form-control" name="prints" placeholder="Front Logo, Back Print">
       </div>
-
       <div class="mb-3">
         <label class="form-label">Image Link</label>
-        <input type="url" class="form-control" name="image" placeholder="https://example.com/image.jpg">
+        <input type="url" class="form-control" name="image_url" placeholder="https://example.com/image.jpg">
       </div>
-
       <div class="mb-3">
         <label class="form-label">Description</label>
         <textarea class="form-control" name="description" rows="3"></textarea>
       </div>
-
       <button type="submit" class="btn btn-primary">Add Product</button>
     </form>
   </div>
 
-  <!-- Bulk Upload CSV -->
-  <div class="card shadow-sm p-4 mb-4">
-    <h5 class="mb-3">📂 Bulk Upload Products (CSV)</h5>
-    <form action="{{ url_for('upload_csv') }}" method="POST" enctype="multipart/form-data">
-      <div class="mb-3">
-        <input type="file" class="form-control" name="file" accept=".csv" required>
-      </div>
-      <button type="submit" class="btn btn-success">Upload CSV</button>
+  <!-- Bulk Upload, Delete & Sync -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- Bulk CSV Upload -->
+    <form method="POST" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data">
+      <input type="file" name="file" required>
+      <button class="btn btn-sm btn-success">Bulk Upload CSV</button>
     </form>
-    <p class="text-muted mt-2">
-      <small>Make sure your CSV has headers: 
-      <b>Product Name, Product Type, Product Size, Price, Color Variants, Print Variants, Image Link, Description</b></small>
-    </p>
-  </div>
 
-  <!-- 🔴 Delete All Products Button -->
-  <div class="card shadow-sm p-4 mb-4 border-danger">
-    <h5 class="mb-3 text-danger">⚠️ Danger Zone</h5>
-    <form action="{{ url_for('delete_all_products') }}" method="POST"
-          onsubmit="return confirm('🚨 Are you absolutely sure?\n\nThis will permanently delete ALL products and cannot be undone.');">
-      <button type="submit" class="btn btn-sm btn-outline-danger">
-        🗑️ Delete All Products
-      </button>
+    <!-- Sync Google Sheet -->
+   <form method="POST" action="{{ url_for('sync_products') }}">
+    <button type="submit" class="btn btn-sm btn-info">🔄 Sync Google Sheet</button>
+</form>
+
+    <!-- Delete All Products -->
+    <form method="POST" action="{{ url_for('delete_all_products') }}" onsubmit="return confirm('Are you sure you want to delete all products?');">
+      <button class="btn btn-sm btn-danger">Delete All Products</button>
     </form>
-    <small class="text-muted">Think twice before using this. All product data will be lost forever!</small>
   </div>
 
   <!-- Products Table -->
@@ -86,16 +70,17 @@
     <table class="table table-bordered align-middle">
       <thead class="table-light">
         <tr>
-          <th scope="col">#</th>
-          <th scope="col">Product Name</th>
-          <th scope="col">Type</th>
-          <th scope="col">Size</th>
-          <th scope="col">Price (₹)</th>
-          <th scope="col">Colors</th>
-          <th scope="col">Prints</th>
-          <th scope="col">Image</th>
-          <th scope="col">Description</th>
-          <th scope="col">Actions</th>
+          <th>#</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Sizes</th>
+          <th>Price (₹)</th>
+          <th>Colors</th>
+          <th>Prints</th>
+          <th>Image</th>
+          <th>Description</th>
+          <th>Source</th> <!-- NEW: shows db/csv/sheet -->
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -104,18 +89,13 @@
           <td>{{ loop.index }}</td>
           <td>{{ product.name }}</td>
           <td>{{ product.type or "-" }}</td>
-          <td>{{ product.size or "-" }}</td>
+          <td>{{ product.sizes or "-" }}</td>
           <td>₹{{ "%.2f"|format(product.price) }}</td>
           <td>{{ product.colors or "-" }}</td>
           <td>{{ product.prints or "-" }}</td>
-          <td>
-            {% if product.image %}
-              <a href="{{ product.image }}" target="_blank">View</a>
-            {% else %}
-              -
-            {% endif %}
-          </td>
+          <td>{% if product.image_url %}<a href="{{ product.image_url }}" target="_blank">View</a>{% else %}-{% endif %}</td>
           <td>{{ product.description or "-" }}</td>
+          <td>{{ product.source }}</td> <!-- Display product source -->
           <td>
             <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn btn-sm btn-warning">✏️ Edit</a>
             <a href="{{ url_for('delete_product', product_id=product.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');">🗑️ Delete</a>
@@ -123,7 +103,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="10" class="text-center">No products available.</td>
+          <td colspan="11" class="text-center">No products available.</td>
         </tr>
         {% endfor %}
       </tbody>

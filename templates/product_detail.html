@@ -1,52 +1,214 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>{{ product['name'] }} - Qikink Store</title>
+  <meta charset="UTF-8">
+  <title>{{ product['name'] }} - VastraVibe</title>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .product-detail { max-width: 600px; margin: auto; border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
-    .product-detail img { width: 100%; height: auto; }
-    h2 { margin-top: 10px; }
-    p { margin: 10px 0; }
-    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-    a.back { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #333; }
+    :root {
+      --primary: linear-gradient(135deg, #6d28d9, #2563eb);
+      --bg: #f4f6f9;
+      --text: #1e293b;
+      --card-bg: #fff;
+      --accent: #2563eb;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --text: #f1f5f9;
+      --card-bg: #1e293b;
+      --accent: #93c5fd;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0; padding: 20px;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    a.back {
+      display: inline-block;
+      margin-bottom: 25px;
+      text-decoration: none;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 1.2rem;
+      padding: 8px 15px;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    a.back:hover {
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .product-detail {
+      max-width: 750px;
+      margin: auto;
+      background: var(--card-bg);
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    .swiper { width: 100%; height: 400px; border-radius: 12px; margin-bottom: 20px; }
+    .swiper-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #f9f9f9;
+      transition: transform 0.3s;
+    }
+    .swiper-slide img:hover { transform: scale(1.05); }
+
+    h2 { font-family: 'Playfair Display', serif; font-size: 2rem; margin: 10px 0; background: var(--primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    p { margin: 10px 0; line-height: 1.6; }
+
+    .price { font-size: 1.5em; font-weight: 700; color: var(--accent); margin: 15px 0; }
+
+    .sizes { margin-bottom: 25px; }
+    .sizes span {
+      margin-right: 8px;
+      margin-top: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--accent);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-block;
+    }
+    .sizes span:hover { background: var(--accent); color: #fff; }
+    .sizes span.selected { background: var(--accent); color: #fff; }
+
+    button.buy-btn {
+      width: 100%;
+      padding: 16px 0;
+      font-size: 18px;
+      font-weight: 700;
+      border-radius: 12px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      transition: transform 0.2s, box-shadow 0.3s, background 0.3s;
+    }
+    button.buy-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      background: linear-gradient(135deg, #6d28d9, #2563eb);
+    }
+
+    #toggle-theme {
+      position: fixed; bottom: 20px; left: 20px;
+      padding: 10px 14px; border-radius: 30px;
+      background: var(--card-bg); color: var(--text);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <a class="back" href="{{ url_for('store') }}">&larr; Back to Store</a>
-  <div class="product-detail">
-    {% if product['image_url'] %}
-      <img src="{{ product['image_url'] }}" alt="{{ product['name'] }}">
-    {% else %}
-      <img src="https://via.placeholder.com/500x300?text=No+Image" alt="No Image">
-    {% endif %}
-    <h2>{{ product['name'] }}</h2>
-    <p>{{ product['description'] or "No description available" }}</p>
-    <b>₹{{ "%.2f"|format(product['price']) }}</b><br/><br/>
-    <button onclick="openRazorpay('{{ product['id'] }}','{{ product['name'] }}','{{ product['description'] }}','{{ product['price'] }}')">
-      Buy Now
-    </button>
+
+<a class="back" href="{{ url_for('store') }}">&larr; Back to Store</a>
+
+<div class="product-detail">
+
+  <!-- Carousel -->
+  <div class="swiper mySwiper">
+    <div class="swiper-wrapper">
+      {% set images = product['image_url'].split(',')|map('trim')|list %}
+      {% if images|length == 1 %}
+        {% set images = images + [product['image_url'], product['image_url']] %}
+      {% endif %}
+      {% for img in images %}
+        <div class="swiper-slide">
+          <picture>
+            <source srcset="https://res.cloudinary.com/dsszho16j/image/fetch/f_webp/{{ img.strip() }}" type="image/webp">
+            <img src="{{ img.strip() }}" alt="{{ product['name'] }}" loading="lazy"
+                 onerror="this.src='https://via.placeholder.com/700x400?text=Image+Not+Available'">
+          </picture>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="swiper-button-next"></div>
+    <div class="swiper-button-prev"></div>
+    <div class="swiper-pagination"></div>
   </div>
 
-  <script>
-    function openRazorpay(id, name, description, price) {
-      var options = {
-        "key": "rzp_test_RB6meofEAzd7xv",
-        "amount": parseFloat(price) * 100,
-        "currency": "INR",
-        "name": name,
-        "description": description,
-        "handler": function(response){
-          alert("Payment successful! Payment ID: " + response.razorpay_payment_id);
-        },
-        "modal": {
-          "ondismiss": function(){ alert("Payment popup closed"); }
-        }
-      };
-      var rzp1 = new Razorpay(options);
-      rzp1.open();
+  <!-- Product info -->
+  <h2>{{ product['name'] }}</h2>
+  <p>{{ product['description'] or "No description available" }}</p>
+  <p class="price">₹{{ "%.2f"|format(product['price']) }}</p>
+
+  <!-- Sizes -->
+  {% if product['sizes'] %}
+    <div class="sizes">
+      <strong>Available Sizes:</strong><br>
+      {% for s in product['sizes'] %}
+        {% if s and s|trim != '' %}
+          <span onclick="selectSize(this)">{{ s|trim }}</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <button class="buy-btn" onclick="openRazorpay('{{ product['slug'] }}')">Buy Now</button>
+</div>
+
+<div id="toggle-theme">🌙 Dark Mode</div>
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script>
+  var swiper = new Swiper(".mySwiper", {
+    loop: true,
+    autoplay: { delay: 3000, disableOnInteraction: false },
+    pagination: { el: ".swiper-pagination", clickable: true },
+    navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }
+  });
+
+  function selectSize(el) {
+    document.querySelectorAll('.sizes span').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function openRazorpay(productId) {
+    fetch(`/create_order/${productId}`, { method: "POST", headers: { "Content-Type": "application/json" }})
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) { alert("Error: " + data.error); return; }
+        var options = {
+          "key": data.key,
+          "amount": data.amount,
+          "currency": data.currency,
+          "name": data.product_name,
+          "description": data.description,
+          "order_id": data.order_id,
+          "handler": function (response) {
+            alert("Payment successful! Payment ID: " + response.razorpay_payment_id);
+          },
+          "modal": { "ondismiss": function() { alert("Payment popup closed"); } }
+        };
+        var rzp1 = new Razorpay(options); rzp1.open();
+      })
+      .catch(err => { console.error(err); alert("Failed to start payment. Check console."); });
+  }
+
+  const toggleBtn = document.getElementById("toggle-theme");
+  toggleBtn.addEventListener("click", () => {
+    if (document.body.getAttribute("data-theme") === "dark") {
+      document.body.removeAttribute("data-theme");
+      toggleBtn.innerText = "🌙 Dark Mode";
+    } else {
+      document.body.setAttribute("data-theme", "dark");
+      toggleBtn.innerText = "☀️ Light Mode";
     }
-  </script>
+  });
+</script>
 </body>
 </html>
