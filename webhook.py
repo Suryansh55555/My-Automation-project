@@ -1,12 +1,11 @@
 # webhook.py (corrected)
 import os
 import hmac
-import threading
-import time
 import hashlib
 import json
+import threading
+import time
 import sqlite3
-<<<<<<< HEAD
 import csv
 import requests
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
@@ -14,11 +13,9 @@ from flask_login import (
     LoginManager, login_user, login_required, logout_user, UserMixin
 )
 from werkzeug.utils import secure_filename
-
 # Google Sheets libs
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-
 # Razorpay client
 from razorpay import Client
 import re
@@ -27,40 +24,18 @@ def slugify(name):
     """Convert product name to a URL-friendly slug"""
     return re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
 
-
-
 # ------------------ CONFIG ------------------ #
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET", "supersecretkey")  # change in production
-=======
-from flask import Flask, request, jsonify, render_template, render_template_string, redirect, url_for, flash
-from flask_login import (
-    LoginManager,
-    login_user,
-    login_required,
-    logout_user,
-    UserMixin,
-    current_user,
-)
-import requests
-import csv
-from werkzeug.utils import secure_filename
-
-# ------------------ CONFIG ------------------ #
-app = Flask(__name__)
-app.secret_key = "supersecretkey"  # ⚠️ change in production
->>>>>>> 6221b10 (My latest changes)
+app.secret_key = os.getenv("FLASK_SECRET", "supersecretkey") # change in production
 
 # Telegram
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # Razorpay
-<<<<<<< HEAD
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_key")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "rzp_test_secret")
 RZP_WEBHOOK_SECRET = os.getenv("RZP_WEBHOOK_SECRET", "test_secret")
-
 
 # service account filename used consistently
 SERVICE_ACCOUNT_FILE = "google_credentials.json"
@@ -68,44 +43,29 @@ SERVICE_ACCOUNT_FILE = "google_credentials.json"
 # Initialize Razorpay client
 razorpay_client = Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
-=======
-RZP_WEBHOOK_SECRET = os.getenv("RZP_WEBHOOK_SECRET", "test_secret")
-
->>>>>>> 6221b10 (My latest changes)
 # ------------------ LOGIN ------------------ #
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-
 class User(UserMixin):
     def __init__(self, id):
         self.id = id
-
 
 @login_manager.user_loader
 def load_user(user_id):
     return User(user_id)
 
-
 # ------------------ DATABASE ------------------ #
-<<<<<<< HEAD
 DB_FILE = "site.db"
-
 
 def get_db_connection():
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-=======
-def get_db_connection():
-    conn = sqlite3.connect("site.db")
->>>>>>> 6221b10 (My latest changes)
     conn.row_factory = sqlite3.Row
     return conn
 
-
 def init_db():
     conn = get_db_connection()
-
     conn.execute(
         """CREATE TABLE IF NOT EXISTS orders(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -117,11 +77,6 @@ def init_db():
             raw_payload TEXT
         )"""
     )
-
-<<<<<<< HEAD
-=======
-    # ✅ Products table
->>>>>>> 6221b10 (My latest changes)
     conn.execute(
         """CREATE TABLE IF NOT EXISTS products(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,7 +91,6 @@ def init_db():
             source TEXT DEFAULT 'db'
         )"""
     )
-
     conn.execute(
         """CREATE TABLE IF NOT EXISTS sheet_config(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,14 +99,13 @@ def init_db():
             active INTEGER DEFAULT 0
         )"""
     )
-
     conn.commit()
     conn.close()
 def find_product_by_key(product_key):
     """
     Unified lookup:
-     - if product_key starts with 'db_' -> treat as DB id (db_<id>)
-     - otherwise treat as a slug (look in sheets + db using find_product_by_slug)
+    - if product_key starts with 'db_' -> treat as DB id (db_<id>)
+    - otherwise treat as a slug (look in sheets + db using find_product_by_slug)
     Returns product dict or None.
     """
     key = str(product_key or "").strip()
@@ -163,35 +116,40 @@ def find_product_by_key(product_key):
             pid = int(key.replace("db_", ""))
         except ValueError:
             return None
+
         conn = get_db_connection()
         row = conn.execute("SELECT * FROM products WHERE id=?", (pid,)).fetchone()
         conn.close()
+
         if not row:
             return None
+
         p = dict(row)
         # normalize fields used by templates
         p["slug"] = key
-        p["image_url"] = p.get("image_url") or "/static/images/default.png"
+        # ✅ fix: use external placeholder, not local /static file
+        p["image_url"] = (
+            p.get("image_url")
+            or "https://via.placeholder.com/300x300.png?text=No+Image"
+        )
         # sizes stored as comma-separated string in DB; convert to list
         p["sizes"] = [s.strip() for s in (p.get("sizes") or "").split(",") if s.strip()]
         return p
 
     # 2) Otherwise try slug lookup from sheets and DB using the existing function
-    #    find_product_by_slug already checks sheets then DB by slug.
     return find_product_by_slug(key)
-
 
 
 # ------------------ HELPERS ------------------ #
 def send_telegram_message(msg: str):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     data = {"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"}
     try:
         requests.post(url, data=data, timeout=5)
     except Exception as e:
         print("Telegram error:", e)
-
-<<<<<<< HEAD
 
 def normalize_prices_in_db():
     conn = get_db_connection()
@@ -210,7 +168,6 @@ def normalize_prices_in_db():
         print(f"Normalized {converted} prices from paise -> rupees in the DB.")
     conn.commit()
     conn.close()
-
 
 # --------------- Sheet cache & client helpers ---------------
 # TTL in seconds (default 300s = 5 minutes). You can override with env var SHEET_CACHE_TTL.
@@ -275,40 +232,31 @@ def sync_products_from_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
     client = gspread.authorize(creds)
-
     SHEET_ID = os.getenv("SHEET_ID", "")
     TAB_NAME = os.getenv("SHEET_TAB", "")
-
     if not SHEET_ID or not TAB_NAME:
         print("SHEET_ID or SHEET_TAB not set in env; aborting sync.")
         return
-
     try:
         sh = client.open_by_key(SHEET_ID)
     except Exception as e:
         print("Error opening sheet for sync:", e)
         return
-
     print("Available tabs:", [ws.title for ws in sh.worksheets()])
     try:
         sheet = sh.worksheet(TAB_NAME)
     except Exception as e:
         print("Tab not found for sync:", e)
         return
-
     all_rows = sheet.get_all_values()
     if not all_rows or len(all_rows) < 2:
         print("No data found in the sheet/tab.")
         return
-
     headers = [h.strip() for h in all_rows[0]]
     data_rows = all_rows[1:]
-
     conn = get_db_connection()
     conn.execute("DELETE FROM products WHERE source='sheet'")
-
     seen = set([r['name'].strip().lower() for r in conn.execute("SELECT name FROM products").fetchall()])
-
     inserted = 0
     for row in data_rows:
         if not any(cell.strip() for cell in row):
@@ -321,31 +269,25 @@ def sync_products_from_sheet():
         if n in seen:
             continue
         seen.add(n)
-
         price_raw = str(row_dict.get("Price") or "0").replace("₹", "").strip()
         try:
             price = float(price_raw)
         except:
             price = 0.0
-
         size = row_dict.get("Product Size") or ""
         colors = row_dict.get("Color Variants") or ""
         prints = row_dict.get("Print Variants") or ""
         description = row_dict.get("Description") or ""
         full_description = f"{description}\nSizes: {size}\nColors: {colors}\nPrints: {prints}"
-
         image_url = row_dict.get("Image Link") or None
-
         conn.execute(
             "INSERT INTO products (name, price, description, image_url, source) VALUES (?,?,?,?,?)",
             (name, price, full_description, image_url, "sheet")
         )
         inserted += 1
-
     conn.commit()
     conn.close()
     print(f"✅ Synced {inserted} products from Google Sheet")
-
 
 # --------- Google Sheets helper (consistent credentials) ---------
 def get_sheet_tabs(sheet_id):
@@ -360,25 +302,16 @@ def get_sheet_tabs(sheet_id):
         print(f"Error fetching tabs for sheet {sheet_id}: {e}")
         return []
 
-
-=======
->>>>>>> 6221b10 (My latest changes)
 # ------------------ ROUTES ------------------ #
 @app.route("/")
 def home():
     return redirect(url_for("login"))
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-<<<<<<< HEAD
-=======
-
-        # Hardcoded login
->>>>>>> 6221b10 (My latest changes)
         if username == "admin" and password == "admin123":
             user = User(id=1)
             login_user(user)
@@ -387,44 +320,26 @@ def login():
             return render_template("login.html", error="Invalid login credentials")
     return render_template("login.html")
 
-
 @app.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect(url_for("login"))
 
-
 @app.route("/admin")
 @login_required
 def admin_dashboard():
     conn = get_db_connection()
     payments = conn.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
-<<<<<<< HEAD
     conn.close()
     total_revenue = sum(row["amount"] for row in payments)
-=======
-
-    total_revenue = sum(row["amount"] for row in payments)
-    total_orders = len(payments)
-    last_payment_amount = payments[0]["amount"] if payments else 0
-
-    conn.close()
-
->>>>>>> 6221b10 (My latest changes)
     return render_template(
         "admin_dashboard.html",
         payments=payments,
         total_revenue=total_revenue,
-<<<<<<< HEAD
         total_orders=len(payments),
         last_payment_amount=payments[0]["amount"] if payments else 0
-=======
-        total_orders=total_orders,
-        last_payment_amount=last_payment_amount
->>>>>>> 6221b10 (My latest changes)
     )
-
 
 # ------------------------------
 # Admin products (manual + sheets)
@@ -436,7 +351,6 @@ def admin_dashboard():
 @login_required
 def admin_products():
     conn = get_db_connection()
-
     # ----- Manual Add -----
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
@@ -447,38 +361,32 @@ def admin_products():
         prints = (request.form.get("prints") or "").strip()
         description = (request.form.get("description") or "").strip()
         image_url = (request.form.get("image_url") or "").strip()
-
         try:
             price_val = float(price_raw)
         except Exception:
             price_val = 0.0
-
         conn.execute(
-            """INSERT INTO products
-            (name, type, sizes, price, colors, prints, description, image_url, source)
+            """INSERT INTO products (name, type, sizes, price, colors, prints, description, image_url, source)
             VALUES (?,?,?,?,?,?,?,?,?)""",
             (name, type_, sizes, price_val, colors, prints, description, image_url, "db")
         )
         conn.commit()
         flash("Product added successfully!", "success")
         return redirect(url_for("admin_products"))
-
     # ----- Fetch DB products -----
     db_products = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
-
     # ----- Fetch Google Sheets products -----
     sheets_products = []
     try:
-        sheets_data = fetch_sheets_data()  # {tab_name: [products]}
+        sheets_data = fetch_sheets_data() # {tab_name: [products]}
         for tab_name, products in sheets_data.items():
             for p in products:
                 try:
                     price_val = float(str(p.get("price") or "0").replace("₹","").split()[0])
                 except:
                     price_val = 0.0
-
                 sheets_products.append({
-                    "id": f"sheet_{tab_name}_{p.get('name','unknown')}",  # pseudo-ID
+                    "id": f"sheet_{tab_name}_{p.get('name','unknown')}", # pseudo-ID
                     "name": p.get("name","Unknown"),
                     "type": p.get("type","-"),
                     "sizes": p.get("sizes","-"),
@@ -491,13 +399,10 @@ def admin_products():
                 })
     except Exception as e:
         flash(f"Failed to fetch sheets: {e}", "danger")
-
     # ----- Combine DB + Sheets -----
     all_products = list(db_products) + sheets_products
     conn.close()
-
     return render_template("admin_products.html", products=all_products)
-
 
 # ------------------------------
 # Edit product (DB only)
@@ -510,7 +415,6 @@ def edit_product(product_id):
     if not product:
         conn.close()
         return "Product not found", 404
-
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
         type_ = (request.form.get("type") or "").strip()
@@ -520,25 +424,20 @@ def edit_product(product_id):
         prints = (request.form.get("prints") or "").strip()
         description = (request.form.get("description") or "").strip()
         image_url = (request.form.get("image_url") or "").strip()
-
         try:
             price_val = float(price_raw)
         except:
             price_val = 0.0
-
         conn.execute(
-            """UPDATE products SET name=?, type=?, sizes=?, price=?, colors=?, prints=?,
-               description=?, image_url=? WHERE id=?""",
+            """UPDATE products SET name=?, type=?, sizes=?, price=?, colors=?, prints=?, description=?, image_url=? WHERE id=?""",
             (name, type_, sizes, price_val, colors, prints, description, image_url, product_id)
         )
         conn.commit()
         conn.close()
         flash("Product updated successfully!", "success")
         return redirect(url_for("admin_products"))
-
     conn.close()
     return render_template("edit_product.html", product=product)
-
 
 # ------------------------------
 # Delete product (DB only)
@@ -553,7 +452,6 @@ def delete_product(product_id):
     flash("Product deleted successfully!", "success")
     return redirect(url_for("admin_products"))
 
-
 # ------------------------------
 # Sync products from Google Sheets
 # ------------------------------
@@ -561,12 +459,11 @@ def delete_product(product_id):
 @login_required
 def sync_products():
     try:
-        fetch_sheets_data()  # just fetch to show in admin
+        fetch_sheets_data() # just fetch to show in admin
         flash("Products synced from Google Sheets successfully!", "success")
     except Exception as e:
         flash(f"Failed to sync products: {e}", "danger")
     return redirect(url_for("admin_products"))
-
 
 # --------- Manage Sheets (fixed to support multiple active tabs) ---------
 @app.route("/admin/sheets", methods=["GET", "POST"])
@@ -574,49 +471,38 @@ def sync_products():
 def manage_sheets():
     conn = get_db_connection()
     cur = conn.cursor()
-
     if request.method == "POST":
         sheet_id = request.form.get("sheet_id", "").strip()
-        selected_tabs = request.form.getlist("tabs")  # multiple selection possible
-
+        selected_tabs = request.form.getlist("tabs") # multiple selection possible
         if sheet_id:
             # Fetch existing entries for this sheet
             existing_rows = cur.execute("SELECT * FROM sheet_config WHERE sheet_id=?", (sheet_id,)).fetchall()
             existing_tab_names = [r["tab_name"] for r in existing_rows]
-
             # Update existing rows: activate if selected, deactivate if not selected
             for r in existing_rows:
                 if r["tab_name"] in selected_tabs:
                     cur.execute("UPDATE sheet_config SET active=1 WHERE id=?", (r["id"],))
                 else:
                     cur.execute("UPDATE sheet_config SET active=0 WHERE id=?", (r["id"],))
-
             # Insert any newly selected tabs that are not yet in DB
             for tab in selected_tabs:
                 if tab not in existing_tab_names:
                     cur.execute(
-                        "INSERT INTO sheet_config (sheet_id, tab_name, active) VALUES (?, ?, 1)",
-                        (sheet_id, tab)
+                        "INSERT INTO sheet_config (sheet_id, tab_name, active) VALUES (?, ?, 1)", (sheet_id, tab)
                     )
-
-            conn.commit()
-
+        conn.commit()
         conn.close()
         return redirect(url_for("manage_sheets"))
-
     # GET: fetch all saved sheet rows for display
     sheets = cur.execute("SELECT * FROM sheet_config").fetchall()
-
     # Build a mapping sheet_id -> list of active tab names for the template (helps preselect)
     active_map = {}
     for s in sheets:
         if s["active"] == 1:
             active_map.setdefault(s["sheet_id"], []).append(s["tab_name"])
-
     conn.close()
     # render template with 'sheets' and 'active_map'
     return render_template("manage_sheets.html", sheets=sheets, active_map=active_map)
-
 
 # --------- AJAX: Fetch tabs dynamically (no login redirect issues) ---------
 @app.route("/get_tabs", methods=["POST", "GET"])
@@ -624,16 +510,13 @@ def get_tabs():
     sheet_id = request.values.get("sheet_id", "").strip()
     if not sheet_id:
         return jsonify({"tabs": [], "active": []})
-
     tabs = get_sheet_tabs(sheet_id)
-
     # Also fetch currently active tabs (if any) for this sheet from DB
     conn = get_db_connection()
     rows = conn.execute("SELECT tab_name FROM sheet_config WHERE sheet_id=? AND active=1", (sheet_id,)).fetchall()
     conn.close()
     active = [r["tab_name"] for r in rows]
     return jsonify({"tabs": tabs, "active": active})
-
 
 # --------- Store (fetches from all active sheets + DB) ---------
 @app.route("/store")
@@ -654,7 +537,8 @@ def store():
             "slug": slugify(p["name"]),
             "name": p["name"],
             "price": p["price"],
-            "image_url": p["image_url"] or "/static/images/default.png",
+            "image_url": p["image_url"] or "https://via.placeholder.com/300x300.png?text=No+Image",
+
             "description": p["description"] or "No description available",
             "sizes": [p["sizes"]] if p["sizes"] else [],
             "colors": "",   # no column in DB
@@ -694,7 +578,7 @@ def store():
                 size = (rec.get("Product Size") or "").strip()
                 colors = (rec.get("Color Variants") or "").strip()
                 prints = (rec.get("Print Variants") or "").strip()
-                image_url = (rec.get("Image Link") or "").strip()
+                image_url = (rec.get("Image Link") or "").strip() or "https://via.placeholder.com/300x300.png?text=No+Image"
                 description = (rec.get("Description") or "").strip()
 
                 if name in products_dict:
@@ -727,6 +611,7 @@ def store():
         razorpay_key=RAZORPAY_KEY_ID
     )
 
+
 # --------- Product Detail (adjusted to show all sizes) ---------
 @app.route("/product/<product_key>")
 def product_detail(product_key):
@@ -737,12 +622,14 @@ def product_detail(product_key):
 
     # Ensure product has required normalized keys
     product.setdefault("slug", product_key)
-    product.setdefault("image_url", "/static/images/default.png")
+    product.setdefault(
+        "image_url",
+        "https://via.placeholder.com/300x300.png?text=No+Image"  # ✅ fixed
+    )
     product.setdefault("description", product.get("description") or "No description available")
     product.setdefault("sizes", product.get("sizes") or [])
 
     return render_template("product_detail.html", product=product)
-
 
 
 # CSV upload
@@ -780,7 +667,6 @@ def upload_csv():
     conn.close()
     return redirect(url_for("admin_products"))
 
-
 @app.route("/admin/payments")
 @login_required
 def admin_payments():
@@ -788,9 +674,6 @@ def admin_payments():
     payments = conn.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
     conn.close()
     return render_template("admin_payments.html", payments=payments)
-
-
-
 
 # Delete all products
 @app.route('/delete_all_products', methods=['POST'])
@@ -805,7 +688,6 @@ def delete_all_products():
     except Exception as e:
         flash(f"❌ Error deleting products: {e}", "danger")
     return redirect(url_for("admin_products"))
-
 
 # Razorpay webhook
 @app.route("/razorpay_webhook", methods=["POST"])
@@ -834,9 +716,9 @@ def razorpay_webhook():
     conn.close()
     msg = (
         f"*Razorpay Payment Alert!*\n\n"
-        f"📌 Event: `{data.get('event')}`\n"
-        f"🆔 Payment ID: `{pid}`\n"
-        f"🛍️ Order ID: `{oid or 'Not Linked'}`\n"
+        f"📌 Event: {data.get('event')}\n"
+        f"🆔 Payment ID: {pid}\n"
+        f"🛍️ Order ID: {oid or 'Not Linked'}\n"
         f"💰 Amount: ₹{amount_inr:.2f} INR\n"
         f"✅ Status: *{status.upper()}*\n"
         f"📝 Description: {safe_description}"
@@ -844,19 +726,16 @@ def razorpay_webhook():
     send_telegram_message(msg)
     return jsonify({"ok": verified})
 
-
 def get_product_by_id(product_id):
     # Try Google Sheets first
     conn = get_db_connection()
     active_rows = conn.execute("SELECT sheet_id, tab_name FROM sheet_config WHERE active=1").fetchall()
     conn.close()
-
     if active_rows:
         try:
             scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
             creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
             client = gspread.authorize(creds)
-
             for row in active_rows:
                 sheet_id = row["sheet_id"]
                 tab_name = row["tab_name"]
@@ -876,7 +755,6 @@ def get_product_by_id(product_id):
                     print(f"Error loading tab {tab_name}: {e}")
         except Exception as e:
             print("Sheets fetch error:", e)
-
     # Fallback to DB
     conn = get_db_connection()
     product = conn.execute("SELECT * FROM products WHERE id=?", (product_id,)).fetchone()
@@ -890,24 +768,25 @@ def create_order(product_key):
     if not product:
         return jsonify({"error": "Product not found"}), 404
 
-    # Ensure description is safe (truncate < 255 chars for Razorpay)
-    safe_description = (product.get("description") or product.get("name") or "No description")[:250]
+    # Safe description (limit 255 chars for Razorpay)
+    safe_description = (product.get("description") or product.get("name") or "No description")[:255]
 
+    # Validate and parse price
     try:
-        product_price = float(product["price"])
+        product_price = float(product.get("price", 0))
         if product_price <= 0:
             return jsonify({"error": "Product price must be greater than 0"}), 400
     except Exception as e:
         return jsonify({"error": f"Invalid product price: {e}"}), 500
 
+    # Amount in paise (Razorpay expects INR in paise)
     amount_paise = int(round(product_price * 100))
-    safe_receipt = f"order_{product_key}"[:40]  # Razorpay max = 40 chars
 
-    # Define order data
+    # Razorpay order data
     order_data = {
         "amount": amount_paise,
         "currency": "INR",
-        "receipt": safe_receipt,
+        "receipt": f"order_{str(product_key)[:30]}",  # Razorpay receipt max length = 40
         "payment_capture": 1,
         "notes": {"description": safe_description}
     }
@@ -916,6 +795,16 @@ def create_order(product_key):
         razorpay_order = razorpay_client.order.create(data=order_data)
     except Exception as e:
         return jsonify({"error": f"Razorpay order creation failed: {e}"}), 500
+
+    # --- Telegram message for ALL products (manual + sheets) ---
+    msg = (
+        f"💰 *New Order Created*\n"
+        f"📦 Product: {product.get('name', 'Unknown')}\n"
+        f"💵 Price: ₹{product_price:.2f}\n"
+        f"🗂 Type: {'Manual/DB' if product_key.startswith('db_') else 'Google Sheets'}\n"
+        f"🆔 Order ID: {razorpay_order.get('id')}"
+    )
+    send_telegram_message(msg)
 
     return jsonify({
         "order_id": razorpay_order.get("id"),
@@ -936,46 +825,14 @@ def clear_history():
     conn.close()
     return redirect(url_for("admin_dashboard"))
 
-<<<<<<< HEAD
 def find_product_by_slug(slug):
     slug = slug.lower()
-    
     # First check Google Sheets aggregated products
     conn = get_db_connection()
     active_rows = conn.execute("SELECT sheet_id, tab_name FROM sheet_config WHERE active=1").fetchall()
-=======
-# ---- PRODUCTS ----
-@app.route("/admin/products", methods=["GET", "POST"])
-@login_required
-def admin_products():
-    conn = get_db_connection()
-
-    if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        price_raw = request.form.get("price") or "0"
-        description = (request.form.get("description") or "").strip()
-        image_url = (request.form.get("image_url") or "").strip() if "image_url" in request.form else None
-
-        try:
-            price_val = float(price_raw)
-        except Exception:
-            price_val = 0.0
-
-        conn.execute(
-            "INSERT INTO products (name, price, description, image_url) VALUES (?,?,?,?)",
-            (name, price_val, description, image_url)
-        )
-        conn.commit()
-        conn.close()
-        return redirect(url_for("admin_products"))
-
-    rows = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
->>>>>>> 6221b10 (My latest changes)
     conn.close()
-
     if active_rows:
         try:
-<<<<<<< HEAD
             scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
             creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
             client = gspread.authorize(creds)
@@ -1008,199 +865,19 @@ def admin_products():
                         }
         except:
             pass
-
     # Fallback DB
-=======
-            price_val = float(price_raw)
-        except Exception:
-            price_val = 0.0
-
-        conn.execute(
-            "UPDATE products SET name=?, price=?, description=?, image_url=? WHERE id=?",
-            (name, price_val, description, image_url, product_id)
-        )
-        conn.commit()
-        conn.close()
-        return redirect(url_for("admin_products"))
-
-    r = conn.execute("SELECT * FROM products WHERE id=?", (product_id,)).fetchone()
-    conn.close()
-    if not r:
-        return "Product not found", 404
-
-    edit_html = """
-    {% extends "base.html" %}
-    {% block content %}
-    <div class="container mt-4">
-      <h2>Edit Product</h2>
-      <form method="POST" action="{{ url_for('edit_product', product_id=product['id']) }}">
-        <div class="mb-3">
-          <label class="form-label">Product Name</label>
-          <input type="text" class="form-control" name="name" value="{{ product['name'] }}" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Price (₹)</label>
-          <input type="number" class="form-control" name="price" step="0.01" value="{{ product['price'] }}" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Description</label>
-          <textarea class="form-control" name="description" rows="3">{{ product['description'] }}</textarea>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Image URL (optional)</label>
-          <input type="text" class="form-control" name="image_url" value="{{ product['image_url'] or '' }}">
-        </div>
-        <button class="btn btn-primary">Save</button>
-        <a class="btn btn-secondary" href="{{ url_for('admin_products') }}">Cancel</a>
-      </form>
-    </div>
-    {% endblock %}
-    """
-    return render_template_string(edit_html, product=dict(r))
-
-@app.route("/admin/products/delete/<int:product_id>", methods=["GET", "POST"])
-@login_required
-def delete_product(product_id):
-    conn = get_db_connection()
-    conn.execute("DELETE FROM products WHERE id=?", (product_id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for("admin_products"))
-
-# ---- ORDERS & PAYMENTS ----
-@app.route("/admin/orders")
-@login_required
-def admin_orders():
->>>>>>> 6221b10 (My latest changes)
     conn = get_db_connection()
     rows = conn.execute("SELECT * FROM products").fetchall()
     conn.close()
     for p in rows:
         if slugify(p['name']) == slug:
             p = dict(p)
-            p['sizes'] = []  # DB has no sizes
+            p['sizes'] = [] # DB has no sizes
             p['slug'] = slug
             return p
-
     return None
 
-<<<<<<< HEAD
 # ------------------ STARTUP ------------------ #
-=======
-# ---- RAZORPAY WEBHOOK ----
-@app.route("/razorpay_webhook", methods=["POST"])
-def razorpay_webhook():
-    body = request.data
-    sig = request.headers.get("X-Razorpay-Signature")
-
-    if not sig:
-        return "Missing signature", 400
-
-    exp = hmac.new(RZP_WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
-    verified = hmac.compare_digest(exp, sig)
-
-    data = request.get_json()
-    pay = data.get("payload", {}).get("payment", {}).get("entity", {})
-
-    amount_paise = pay.get("amount", 0)
-    amount_inr = amount_paise / 100.0
-    pid = pay.get("id")
-    oid = pay.get("order_id")
-    status = pay.get("status", "unknown")
-
-    conn = get_db_connection()
-    conn.execute(
-        "INSERT INTO orders(payment_id,order_id,status,amount,currency,raw_payload) VALUES (?,?,?,?,?,?)",
-        (pid, oid, status, amount_inr, pay.get("currency", "INR"), json.dumps(data)),
-    )
-    conn.commit()
-    conn.close()
-
-    msg = (
-        f"*Razorpay Payment Alert!*\n\n"
-        f"📌 Event: `{data.get('event')}`\n"
-        f"🆔 Payment ID: `{pid}`\n"
-        f"🛍️ Order ID: `{oid or 'Not Linked'}`\n"
-        f"💰 Amount: ₹{amount_inr:.2f} INR\n"
-        f"✅ Status: *{status.upper()}*"
-    )
-    send_telegram_message(msg)
-
-    return jsonify({"ok": verified})
-
-# ---- STORE PAGE ----
-@app.route("/store")
-def store():
-    conn = get_db_connection()
-    products = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
-    conn.close()
-    return render_template("store.html", products=products)
-
-# ---- BULK UPLOAD ----
-@app.route("/admin/upload_csv", methods=["POST"])
-@login_required
-def upload_csv():
-    file = request.files.get("file")
-    if not file:
-        return "No file uploaded", 400
-
-    filename = secure_filename(file.filename)
-    if not filename.endswith(".csv"):
-        return "Only CSV files are allowed", 400
-
-    # Read CSV
-    stream = file.stream.read().decode("utf-8").splitlines()
-    reader = csv.DictReader(stream)
-
-    conn = get_db_connection()
-    for row in reader:
-        name = row.get("Product Type") or row.get("name") or ""
-        price_raw = row.get("Price", "0").replace("₹", "").strip()
-        try:
-            price = float(price_raw)
-        except:
-            price = 0.0
-        description = row.get("Description", "")
-        image_url = row.get("Image Link") or None
-
-        conn.execute(
-            "INSERT INTO products (name, price, description, image_url) VALUES (?,?,?,?)",
-            (name, price, description, image_url)
-        )
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for("admin_products"))
-
-# ---- PRODUCT DETAIL ----
-@app.route("/product/<int:product_id>")
-def product_detail(product_id):
-    conn = get_db_connection()
-    product = conn.execute("SELECT * FROM products WHERE id=?", (product_id,)).fetchone()
-    conn.close()
-
-    if not product:
-        return "Product not found", 404
-
-    return render_template("product_detail.html", product=product)
-
-# ---- DELETE ALL PRODUCTS ----
-@app.route('/delete_all_products', methods=['POST'])
-@login_required
-def delete_all_products():
-    try:
-        conn = get_db_connection()   # ✅ fixed (site.db, not products.db)
-        conn.execute("DELETE FROM products")
-        conn.commit()
-        conn.close()
-        flash("✅ All products deleted successfully!", "success")
-    except Exception as e:
-        flash(f"❌ Error deleting products: {e}", "danger")
-
-    return redirect(url_for("admin_products"))
-
-# ------------------ MAIN ------------------ #
->>>>>>> 6221b10 (My latest changes)
 if __name__ == "__main__":
     init_db()
     try:

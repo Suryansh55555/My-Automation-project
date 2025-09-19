@@ -1,1 +1,3 @@
-"google_credentials.json" 
+*.db
+*.db.bak
+google_credentials.json

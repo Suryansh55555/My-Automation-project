@@ -1,18 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<<<<<<< HEAD
   <meta charset="UTF-8">
   <title>{{ product['name'] }} - VastraVibe</title>
-=======
-  <meta charset="utf-8" />
-  <title>{{ product['name'] }} - Qikink Store</title>
->>>>>>> 6221b10 (My latest changes)
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
   <style>
-<<<<<<< HEAD
     :root {
       --primary: linear-gradient(135deg, #6d28d9, #2563eb);
       --bg: #f4f6f9;
@@ -213,98 +207,6 @@
     } else {
       document.body.setAttribute("data-theme", "dark");
       toggleBtn.innerText = "☀️ Light Mode";
-=======
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f8f8f8; }
-    .product-detail {
-      max-width: 700px;
-      margin: auto;
-      background: #fff;
-      border: 1px solid #ddd;
-      padding: 24px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
-    .product-detail img { width: 100%; height: auto; border-radius: 8px; }
-    h2 { margin-top: 16px; font-size: 1.6em; }
-    p { margin: 12px 0; line-height: 1.5; }
-    .price { font-size: 1.4em; font-weight: 700; color: #007bff; margin: 12px 0; }
-    .sizes { margin: 16px 0; }
-    .sizes label { margin-right: 12px; font-weight: 500; }
-    .sizes select {
-      padding: 6px 12px;
-      font-size: 1em;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-    button {
-      padding: 12px 22px;
-      font-size: 16px;
-      cursor: pointer;
-      background: #007bff;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      margin-top: 16px;
-      transition: background 0.2s;
-    }
-    button:hover { background: #0056b3; }
-    a.back { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #555; }
-  </style>
-</head>
-<body>
-  <a class="back" href="{{ url_for('store') }}">&larr; Back to Store</a>
-
-  <div class="product-detail">
-    {% set img = product.get('image') or product.get('image_url') %}
-    {% if img %}
-      <img src="{{ img }}" alt="{{ product['name'] }}">
-    {% else %}
-      <img src="https://via.placeholder.com/600x400?text=No+Image" alt="No Image">
-    {% endif %}
-
-    <h2>{{ product['name'] }}</h2>
-    <p>{{ product.get('description') or "No description available" }}</p>
-
-    <div class="price">₹{{ "%.2f"|format(product.get('price')|float if product.get('price') else 0) }}</div>
-
-
-    {% if product.get('sizes') %}
-    <div class="sizes">
-      <label for="size">Select Size:</label>
-      <select id="size">
-        {% for s in product['sizes'] %}
-          <option value="{{ s }}">{{ s }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    {% endif %}
-
-    <button onclick="openRazorpay('{{ product['id'] }}','{{ product['name'] }}','{{ product.get('description') }}','{{ product.get('price') }}')">
-      Buy Now
-    </button>
-  </div>
-
-  <script>
-    function openRazorpay(id, name, description, price) {
-      var sizeElement = document.getElementById("size");
-      var selectedSize = sizeElement ? sizeElement.value : "Default";
-
-      var options = {
-        "key": "rzp_test_RB6meofEAzd7xv", // replace with your real key in prod
-        "amount": parseFloat(price) * 100,
-        "currency": "INR",
-        "name": name + " (" + selectedSize + ")",
-        "description": description,
-        "handler": function (response) {
-          alert("✅ Payment successful! Payment ID: " + response.razorpay_payment_id);
-        },
-        "modal": {
-          "ondismiss": function () { alert("Payment popup closed"); }
-        }
-      };
-      var rzp1 = new Razorpay(options);
-      rzp1.open();
->>>>>>> 6221b10 (My latest changes)
     }
   });
 </script>
