@@ -291,16 +291,25 @@ def sync_products_from_sheet():
 
 # --------- Google Sheets helper (consistent credentials) ---------
 def get_sheet_tabs(sheet_id):
-    """Return all worksheet names for a given sheet ID using google_credentials.json"""
+    """Return all worksheet names for a given sheet ID using GOOGLE_CREDENTIALS env var"""
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
+        
+        creds_json = os.getenv("GOOGLE_CREDENTIALS")
+        if not creds_json:
+            print("❌ GOOGLE_CREDENTIALS not set in environment")
+            return []
+
+        creds_dict = json.loads(creds_json)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
+
         sh = client.open_by_key(sheet_id)
         return [ws.title for ws in sh.worksheets()]
     except Exception as e:
-        print(f"Error fetching tabs for sheet {sheet_id}: {e}")
+        print(f"❌ Error fetching tabs for sheet {sheet_id}: {e}")
         return []
+
 
 # ------------------ ROUTES ------------------ #
 @app.route("/")
