@@ -654,23 +654,92 @@ def store():
 
 
 # --------- Product Detail (adjusted to show all sizes) ---------
+from slugify import slugify
+
+def find_product_by_key(product_key):
+    """
+    Lookup product by key from:
+    1) Manual DB products
+    2) Active Google Sheets tabs
+    Returns a dict with normalized keys or None
+    """
+    # --- 1. Check manual DB products ---
+    conn = get_db_connection()
+    db_rows = conn.execute("SELECT * FROM products").fetchall()
+    conn.close()
+
+    for p in db_rows:
+        slug = slugify(p["name"])
+        if product_key == slug or product_key == f"db_{p['id']}":
+            return {
+                "id": p["id"],
+                "name": p["name"],
+                "slug": slug,
+                "price": p["price"],
+                "image_url": p["image_url"] or "https://via.placeholder.com/300x300.png?text=No+Image",
+                "description": p["description"] or "No description available",
+                "sizes": [p["sizes"]] if p["sizes"] else [],
+                "colors": "",
+                "prints": ""
+            }
+
+    # --- 2. Check Sheets products ---
+    conn = get_db_connection()
+    active_rows = conn.execute("SELECT sheet_id, tab_name FROM sheet_config WHERE active=1").fetchall()
+    conn.close()
+
+    for row in active_rows:
+        sheet_data = get_sheet_records(row["sheet_id"], row["tab_name"])
+        for rec in sheet_data:
+            name = (rec.get("Product Type") or rec.get("Product") or "").strip()
+            if not name:
+                continue
+            slug = slugify(name)
+            if slug == product_key:
+                size = (rec.get("Product Size") or "").strip()
+                colors = (rec.get("Color Variants") or "").strip()
+                prints = (rec.get("Print Variants") or "").strip()
+                image_url = (rec.get("Image Link") or "").strip() or "https://via.placeholder.com/300x300.png?text=No+Image"
+                description = (rec.get("Description") or "").strip() or "No description available"
+                price_raw = str(rec.get("Price") or "").replace("₹", "").replace(",", "").strip()
+                try:
+                    price = float(price_raw) if price_raw else 0.0
+                except ValueError:
+                    import re
+                    digits = re.sub(r"[^\d.]", "", price_raw)
+                    price = float(digits) if digits else 0.0
+
+                return {
+                    "id": None,
+                    "name": name,
+                    "slug": slug,
+                    "price": price,
+                    "image_url": image_url,
+                    "description": description,
+                    "sizes": [size] if size else [],
+                    "colors": colors,
+                    "prints": prints
+                }
+
+    # Not found
+    return None
+
+
+# --- Product detail route ---
 @app.route("/product/<product_key>")
 def product_detail(product_key):
-    # Unified lookup for sheet-slug OR db_<id>
     product = find_product_by_key(product_key)
     if not product:
         return "Product not found", 404
 
-    # Ensure product has required normalized keys
+    # Normalize keys
     product.setdefault("slug", product_key)
-    product.setdefault(
-        "image_url",
-        "https://via.placeholder.com/300x300.png?text=No+Image"  # ✅ fixed
-    )
-    product.setdefault("description", product.get("description") or "No description available")
-    product.setdefault("sizes", product.get("sizes") or [])
+    product.setdefault("image_url", "https://via.placeholder.com/300x300.png?text=No+Image")
+    product.setdefault("description", "No description available")
+    product.setdefault("sizes", [])
 
     return render_template("product_detail.html", product=product)
+
 
 
 # CSV upload
