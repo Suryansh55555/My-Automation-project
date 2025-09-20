@@ -654,7 +654,7 @@ def store():
 
 
 # --------- Product Detail (adjusted to show all sizes) ---------
-from slugify import slugify
+
 
 def find_product_by_key(product_key):
     """
