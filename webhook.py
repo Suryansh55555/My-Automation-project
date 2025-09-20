@@ -179,23 +179,48 @@ SHEET_CACHE_LOCK = threading.Lock()
 GSPREAD_CLIENT = None
 GSPREAD_CLIENT_LOCK = threading.Lock()
 
+
 def get_gspread_client():
-    """Return a cached gspread client (authorizes once)."""
+    """
+    Return a cached gspread client.
+    Works with either:
+    1) Uploaded JSON file (SERVICE_ACCOUNT_FILE)
+    2) GOOGLE_CREDENTIALS env var containing JSON string
+    """
     global GSPREAD_CLIENT
     if GSPREAD_CLIENT:
         return GSPREAD_CLIENT
+
     with GSPREAD_CLIENT_LOCK:
-        if GSPREAD_CLIENT:  # double-check
+        if GSPREAD_CLIENT:  # double-check after lock
             return GSPREAD_CLIENT
+
         try:
-            scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-            creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
+            scope = ["https://spreadsheets.google.com/feeds",
+                     "https://www.googleapis.com/auth/drive"]
+
+            # Try env var first
+            creds_json = os.environ.get("GOOGLE_CREDENTIALS")
+            if creds_json:
+                creds_dict = json.loads(creds_json)
+                creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+                print("[INFO] gspread client created from GOOGLE_CREDENTIALS env var")
+            else:
+                # fallback to local JSON file
+                if not os.path.exists(SERVICE_ACCOUNT_FILE):
+                    print(f"[ERROR] Service account file not found: {SERVICE_ACCOUNT_FILE}")
+                    return None
+                creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
+                print(f"[INFO] gspread client created from file: {SERVICE_ACCOUNT_FILE}")
+
             client = gspread.authorize(creds)
             GSPREAD_CLIENT = client
             return client
+
         except Exception as e:
-            print("gspread auth error in get_gspread_client():", e)
+            print("[ERROR] gspread auth failed:", e)
             return None
+
 
 def get_sheet_records(sheet_id, tab_name):
     """Return cached sheet records if fresh, otherwise fetch and cache."""
