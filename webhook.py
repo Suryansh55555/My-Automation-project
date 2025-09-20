@@ -211,17 +211,24 @@ def get_sheet_records(sheet_id, tab_name):
     # not cached or expired — fetch
     client = get_gspread_client()
     if not client:
-        return []  # can't auth — let caller handle empty list
+        print(f"[ERROR] Cannot authenticate Google Sheets client for sheet {sheet_id}")
+        return []  # still return empty, but log
 
     try:
         sh = client.open_by_key(sheet_id)
         ws = sh.worksheet(tab_name)
         data = ws.get_all_records() or []
+        if not data:
+            print(f"[INFO] Sheet {sheet_id} tab '{tab_name}' fetched 0 rows")
+        else:
+            print(f"[INFO] Sheet {sheet_id} tab '{tab_name}' fetched {len(data)} rows")
+
         with SHEET_CACHE_LOCK:
             SHEET_CACHE[key] = {"ts": now, "data": data}
         return data
+
     except Exception as e:
-        print(f"Error fetching sheet {sheet_id} tab {tab_name}: {e}")
+        print(f"[ERROR] Exception fetching sheet {sheet_id} tab '{tab_name}': {e}")
         return []
 
 
